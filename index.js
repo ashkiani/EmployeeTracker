@@ -7,6 +7,10 @@ let table = "";
 let employeeRole = "";
 const noRoleTitle = "No Role";
 
+//Siavash 2/8/2020 Added the following code to suppress the MaxListenersExceeded warning. 
+//I assume that the warning eventually reappears if the number of team members grows but I tested it with up to 8 employees and worked fine.
+require('events').EventEmitter.defaultMaxListeners = 250;
+
 start();
 async function getAction() {
   return inquirer
@@ -92,9 +96,19 @@ async function getNewDepartment() {
       }
     })
 }
-
+async function PrintTable() {
+  let sql =`SELECT * FROM ${table}`;
+  
+  let res = await db.executeQuery(sql);
+  let caption = `----Table:${table}---`;
+  console.log("start " + caption);
+  res.forEach(row => console.log(JSON.stringify(row)));
+  console.log("end " + caption);
+}
 async function getValues() {
   switch (action) {
+    case "View":
+      return PrintTable();
     case "Add":
       switch (table) {
         case "employee":
@@ -134,31 +148,6 @@ async function start() {
   db.connect();
   while (!exit) {
     await getAction();
-    switch (action) {
-      case "View":
-        query = "SELECT * FROM " + table
-        break;
-      case "Add":
-        query = "";
-        break;
-      case "Update":
-        query = "";
-        break;
-      case "Delete":
-        query = "";
-        break;
-      case "EXIT":
-        query = "";
-        break;
-      default:
-        console.log("didn't catch the answer.");
-        query = "";
-
-    }
-    if (query != "") {
-      result = await db.executeQuery(query);
-      console.log(result);
-    }
   }
   console.log("Exited while loop");
   db.disconnect();
