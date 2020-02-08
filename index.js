@@ -37,7 +37,7 @@ async function getNewEmployee() {
       message: "Please enter Last Name:"
     }]).then(async function (employeeInfo) {
       console.log(employeeInfo);
-      let roles = db.executeQuery("SELECT * FROM roles");
+      let roles = db.executeQuery("SELECT * FROM role");
       if (roles.length > 0) {
         await getEmployeeRole(roles);
 
@@ -50,11 +50,61 @@ async function getEmployeeRole(roles) {
       name: "role",
       type: "choice",
       message: "Please select the role:",
-      choices: roles.map(role => { return role.title; })
+      choices: roles.map(role => { return role.title; }).push("No Role")
     }).then(async function (roleInfo) {
       console.log(roleInfo);
 
     })
+}
+async function getNewRole() {
+  return inquirer
+    .prompt({
+      name: "title",
+      type: "input",
+      message: "Please enter role title:"
+    }).then(async function (roleInfo) {
+      console.log(roleInfo);
+      let existingRole = await db.executeQuery("SELECT * FROM role WHERE title='" + roleInfo.title + "'");
+      if (existingRole.length == 0) {
+        await db.executeQuery("INSERT INTO role SET title='" + roleInfo.title + "'");
+      }
+    })
+}
+async function getNewDepartment() {
+  return inquirer
+    .prompt({
+      name: "name",
+      type: "input",
+      message: "Please enter department name:"
+    }).then(async function (deptInfo) {
+      console.log(deptInfo);
+      let existingDept = await db.executeQuery("SELECT * FROM department WHERE name='" + deptInfo.name + "'");
+      if (existingDept.length == 0) {
+        await db.executeQuery("INSERT INTO department SET name='" + deptInfo.name + "'");
+      }
+    })
+}
+
+async function getValues() {
+  switch (action) {
+    case "Add":
+      switch (table) {
+        case "employee":
+          return getNewEmployee();
+        case "role":
+          return getNewRole();
+        case "department":
+          return getNewDepartment();
+      }
+    case "Update":
+
+      break;
+    case "Delete":
+
+      break;
+  }
+
+
 }
 
 async function getTable() {
@@ -67,33 +117,10 @@ async function getTable() {
     }).then(async function (menuAnswer) {
       table = menuAnswer.table.toLowerCase();
       table = table.substring(0, table.length - 1);
-      switch (action) {
-        case "Add":
-          switch (table) {
-            case "employee":
-              await getNewEmployee();
-              break;
-              case "role":
-                await getNewRole();
-              break;
-              case "department":
-              break;
-          }
-          await getNewEmployee();
-          break;
-        case "Update":
-
-          break;
-        case "Delete":
-
-          break;
-      }
-
-
-
-
+      await getValues();
     })
 }
+
 async function start() {
   let query = "";
   let result;
