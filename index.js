@@ -1,6 +1,7 @@
 const inquirer = require("inquirer");
 const Database = require("./lib/database");
 const db = new Database("employees_db");
+const cTable = require('console.table');
 let exit = false;
 let action = "";
 let table = "";
@@ -98,12 +99,13 @@ async function getNewDepartment() {
 }
 async function PrintTable() {
   let sql =`SELECT * FROM ${table}`;
-  
+
   let res = await db.executeQuery(sql);
-  let caption = `----Table:${table}---`;
-  console.log("start " + caption);
-  res.forEach(row => console.log(JSON.stringify(row)));
-  console.log("end " + caption);
+  console.table(res);
+  // let caption = `----Table:${table}---`;
+  // console.log("start " + caption);
+  // res.forEach(row => console.log(JSON.stringify(row)));
+  // console.log("end " + caption);
 }
 async function getValues() {
   switch (action) {
