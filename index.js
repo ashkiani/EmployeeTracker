@@ -4,8 +4,8 @@ const db = new Database("employees_db");
 let exit = false;
 let action = "";
 let table = "";
-let fields = [];
-let values = [];
+let employeeRole = "";
+const noRoleTitle = "No Role";
 
 start();
 async function getAction() {
@@ -21,7 +21,6 @@ async function getAction() {
       if (!exit) {
         await getTable();
       }
-
     })
 }
 
@@ -36,24 +35,33 @@ async function getNewEmployee() {
       type: "input",
       message: "Please enter Last Name:"
     }]).then(async function (employeeInfo) {
-      console.log(employeeInfo);
-      let roles = db.executeQuery("SELECT * FROM role");
+      let roles = await db.executeQuery("SELECT * FROM role");
+      let sql = `INSERT INTO employee SET first_name= '${employeeInfo.firstName}' , last_name= '${employeeInfo.lastName}'`;
       if (roles.length > 0) {
         await getEmployeeRole(roles);
-
+        if (employeeRole != noRoleTitle) {
+          let roles = await db.executeQuery(`SELECT id from role WHERE title='${employeeRole}'`)
+          if (roles.length > 0) {
+            let employeeId = roles[0].id;
+            sql += `, role_id=${employeeId}`
+          }
+        }
       }
+      // console.log(sql);
+      await db.executeQuery(sql);
     })
 }
 async function getEmployeeRole(roles) {
+  let titles = roles.map(role => { return role.title; });
+  titles.push(noRoleTitle);
   return inquirer
     .prompt({
       name: "role",
-      type: "choice",
+      type: "list",
       message: "Please select the role:",
-      choices: roles.map(role => { return role.title; }).push("No Role")
+      choices: titles
     }).then(async function (roleInfo) {
-      console.log(roleInfo);
-
+      employeeRole = roleInfo.role;
     })
 }
 async function getNewRole() {
@@ -103,7 +111,6 @@ async function getValues() {
 
       break;
   }
-
 
 }
 
