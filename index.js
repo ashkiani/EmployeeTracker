@@ -70,6 +70,22 @@ async function addNewEmployee() {
           }
         }
       }
+
+      let possibleManagers = await db.executeQuery(`SELECT * FROM employee`);
+      if (possibleManagers.length > 0) {
+        await getEmployeeManager(possibleManagers);
+        if (employeeManagerID != 0) {
+          managerId = employeeManagerID;
+          sql += `, manager_id=${employeeManagerID}`
+        }
+
+      }
+      // else { console.log("No Manager is available. Please add a new manager first."); }
+      // break;
+
+
+
+
       // console.log(sql);
       await db.executeQuery(sql);
     })
