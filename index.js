@@ -29,7 +29,7 @@ async function getAction() {
     })
 }
 
-async function getNewEmployee() {
+async function addNewEmployee() {
   return inquirer
     .prompt([{
       name: "firstName",
@@ -69,7 +69,7 @@ async function getEmployeeRole(roles) {
       employeeRole = roleInfo.role;
     })
 }
-async function getNewRole() {
+async function addNewRole() {
   return inquirer
     .prompt({
       name: "title",
@@ -83,7 +83,7 @@ async function getNewRole() {
       }
     })
 }
-async function getNewDepartment() {
+async function addNewDepartment() {
   return inquirer
     .prompt({
       name: "name",
@@ -97,8 +97,61 @@ async function getNewDepartment() {
       }
     })
 }
+
+async function updateEmployee() {
+  let sql = `SELECT employee.id, employee.first_name,employee.last_name,title,emp1.first_name +emp1.last_name AS manager
+              FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.employee AS emp1 ON employee.manager_id=emp1.manager_id;`
+  let employees = await db.executeQuery(sql);
+  employees = employees.map(employee => { return JSON.stringify(employee) });
+  return inquirer
+    .prompt({
+      name: "id",
+      type: "list",
+      message: "Please select the  employee the employee that you want to update:",
+      choices: employees
+    }).then(async function (employeeInfo) {
+      console.log(employeeInfo);
+      let index = employees.indexOf(employeeInfo.id);
+      let employeeId = JSON.parse(employees[index]).id;
+      await employeeUpdatePrompt(employeeId);
+    })
+}
+async function employeeUpdatePrompt(employeeId) {
+  return inquirer
+    .prompt({
+      name: "updateAction",
+      type: "list",
+      message: "Please select the field to update:",
+      choices: ["Role", "Manager"]
+    }).then(async function (updateAction) {
+      switch (updateAction.updateAction) {
+        case "Role":
+          let roles = await db.executeQuery("SELECT * FROM role");
+          if (roles.length > 0) {
+            await getEmployeeRole(roles);
+            let roleId = 'NULL';
+            if (employeeRole != noRoleTitle) {
+              roleId = await db.executeQuery(`SELECT id from role WHERE title='${employeeRole}'`)
+              roleId = roleId[0].id;
+            }
+            let sql = `UPDATE employee SET role_id= ${roleId} WHERE id=${employeeId}`;
+            await db.executeQuery(sql);
+          }
+        // let options = await db.executeQuery(`SELECT title FROM role ORDER BY title`);
+        //   await employeeUpdateValuesPrompt(options);
+        case "Manager":
+      }
+
+    })
+}
+
 async function PrintTable() {
-  let sql =`SELECT * FROM ${table}`;
+
+  // SELECT employee.id, first_name,last_name,title,salary,department.name AS department
+  // FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.department ON department_id=employees_db.department.id;
+
+
+  let sql = `SELECT * FROM ${table}`;
 
   let res = await db.executeQuery(sql);
   console.table(res);
@@ -114,15 +167,15 @@ async function getValues() {
     case "Add":
       switch (table) {
         case "employee":
-          return getNewEmployee();
+          return addNewEmployee();
         case "role":
-          return getNewRole();
+          return addNewRole();
         case "department":
-          return getNewDepartment();
+          return addNewDepartment();
       }
     case "Update":
+      return updateEmployee();
 
-      break;
     case "Delete":
 
       break;
@@ -145,13 +198,11 @@ async function getTable() {
 }
 
 async function start() {
-  let query = "";
-  let result;
-  db.connect();
-  while (!exit) {
-    await getAction();
-  }
-  console.log("Exited while loop");
-  db.disconnect();
+    db.connect();
+    while (!exit) {
+      await getAction();
+    }
+    console.log("Exited while loop");
+    db.disconnect();
 }
 
