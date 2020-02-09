@@ -323,10 +323,13 @@ async function PrintTable() {
 
 
   }
-
-
   let res = await db.executeQuery(sql);
-  console.table(res);
+  if (res.length > 0) {
+    console.table(res);
+  } else {
+    console.log(`${table} table is empty`);
+  }
+
   // let caption = `----Table:${table}---`;
   // console.log("start " + caption);
   // res.forEach(row => console.log(JSON.stringify(row)));
