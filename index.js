@@ -156,6 +156,21 @@ async function updateRole() {
     })
 }
 
+async function updateDept() {
+  let depts = await db.executeQuery("SELECT * FROM department");
+  depts = depts.map(dept => { return JSON.stringify(dept) });
+  return inquirer
+    .prompt({
+      name: "id",
+      type: "list",
+      message: "Please select the  department that you want to update:",
+      choices: depts
+    }).then(async function (deptInfo) {
+      let index = depts.indexOf(deptInfo.id);
+      let deptId = JSON.parse(depts[index]).id;
+      await deptUpdatePrompt(deptId);
+    })
+}
 
 async function updateEmployee() {
   let employees = await db.executeQuery(employeeSelectSql);
@@ -194,6 +209,17 @@ async function roleUpdatePrompt(roleId) {
           await db.executeQuery(sql);
           break;
       }
+    })
+}
+
+async function deptUpdatePrompt(deptId) {
+  return inquirer
+    .prompt({
+      name: "name",
+      type: "input",
+      message: "Please enter the new department name to update:",
+    }).then(async function (updateAction) {
+      await db.executeQuery(`UPDATE department SET name= '${updateAction.name}' WHERE id=${deptId}`);
     })
 }
 
@@ -281,7 +307,7 @@ async function getValues() {
         case "role":
           return updateRole();
         case "department":
-
+          return updateDept();
       }
       break;
     case "Delete":
