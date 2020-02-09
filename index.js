@@ -20,6 +20,18 @@ require('events').EventEmitter.defaultMaxListeners = 250;
 
 start();
 async function getAction() {
+  let options = ["View", "Add"];
+
+  const promise1 = db.executeQuery("SELECT * FROM employee");
+  const promise2 = db.executeQuery("SELECT * FROM role");
+  const promise3 = db.executeQuery("SELECT * FROM department");
+
+  await Promise.all([promise1, promise2, promise3]).then(function (values) {
+    if (values[0].length || values[1].length || values[2].length) {
+      options.push("Update", "Delete");
+    }
+  });
+  options.push("EXIT");
   return inquirer
     .prompt({
       name: "action",
