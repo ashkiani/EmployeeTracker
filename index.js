@@ -19,6 +19,23 @@ let newSalary;
 require('events').EventEmitter.defaultMaxListeners = 250;
 
 start();
+
+async function getIDForDelete(sqlQuery) {
+  let result = await db.executeQuery(sqlQuery);
+  result = result.map(record => { return JSON.stringify(record); });
+
+  return inquirer
+    .prompt({
+      name: "item",
+      type: "list",
+      message: "Please select the row to be deleted:",
+      choices: result
+    }).then(async function (recordInfo) {
+      let deleteId = JSON.parse(recordInfo.item).id;
+      await db.executeQuery(`DELETE FROM ${table} WHERE id=${deleteId}`);
+    })
+}
+
 async function getAction() {
   let options = ["View", "Add"];
 
@@ -339,8 +356,19 @@ async function getValues() {
       }
       break;
     case "Delete":
-
-      break;
+      let querySQL;
+      switch (table) {
+        case "employee":
+          querySQL = employeeSelectSql;
+          break;
+        case "role":
+          querySQL = "SELECT * FROM role";
+          break;
+        case "department":
+          querySQL = "SELECT * FROM department";
+          break;
+      }
+      return getIDForDelete(querySQL);
   }
 
 }
