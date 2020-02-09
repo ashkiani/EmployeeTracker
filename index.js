@@ -198,11 +198,18 @@ async function getTable() {
 }
 
 async function start() {
-    db.connect();
+  db.connect();
+  try {
     while (!exit) {
       await getAction();
     }
+  }
+  catch (err) {
+    console.log(err);
+  }
+  finally {
     console.log("Exited while loop");
     db.disconnect();
+  }
 }
 
