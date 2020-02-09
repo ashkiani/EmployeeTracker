@@ -9,6 +9,8 @@ let employeeRole = "";
 let employeeManagerID = 0;
 const noRoleTitle = "No Role";
 const noManager = "No Manager";
+const employeeSelectSql = `SELECT employee.id, employee.first_name,employee.last_name,title,concat( emp1.first_name , ' ', emp1.last_name) AS manager
+              FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.employee AS emp1 ON employee.manager_id=emp1.id  ORDER BY employee.first_name,employee.last_name,title;`
 
 //Siavash 2/8/2020 Added the following code to suppress the MaxListenersExceeded warning. 
 //I assume that the warning eventually reappears if the number of team members grows but I tested it with up to 8 employees and worked fine.
@@ -114,9 +116,7 @@ async function addNewDepartment() {
 }
 
 async function updateEmployee() {
-  let sql = `SELECT employee.id, employee.first_name,employee.last_name,title,concat( emp1.first_name , ' ', emp1.last_name) AS manager
-              FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.employee AS emp1 ON employee.manager_id=emp1.id;`
-  let employees = await db.executeQuery(sql);
+    let employees = await db.executeQuery(employeeSelectSql);
   employees = employees.map(employee => { return JSON.stringify(employee) });
   return inquirer
     .prompt({
@@ -171,12 +171,21 @@ async function employeeUpdatePrompt(employeeId) {
 }
 
 async function PrintTable() {
-
+  let sql = `SELECT * FROM ${table}`;
   // SELECT employee.id, first_name,last_name,title,salary,department.name AS department
   // FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.department ON department_id=employees_db.department.id;
+  switch (table) {
+    case "employee":
+      sql = employeeSelectSql;
+      break;
+    case "role":
+      break;
+    case "department":
+      break;
 
 
-  let sql = `SELECT * FROM ${table}`;
+  }
+
 
   let res = await db.executeQuery(sql);
   console.table(res);
@@ -233,7 +242,6 @@ async function start() {
     console.log(err);
   }
   finally {
-    console.log("Exited while loop");
     db.disconnect();
   }
 }
