@@ -330,12 +330,32 @@ async function getValues() {
 }
 
 async function getTable() {
+  let options = [];
+  switch (action) {
+    case "View":
+    case "Add":
+      options = ["Employees", "Departments", "Roles"];
+      break;
+    case "Update":
+    case "Delete":
+      const promise1 = db.executeQuery("SELECT * FROM employee");
+      const promise2 = db.executeQuery("SELECT * FROM role");
+      const promise3 = db.executeQuery("SELECT * FROM department");
+      await Promise.all([promise1, promise2, promise3]).then(function (values) {
+        if (values[0].length) { options.push("Employees"); }
+        if (values[2].length) { options.push("Departments"); }
+        if (values[1].length) { options.push("Roles"); }
+      });
+
+  }
+
+
   return inquirer
     .prompt({
       name: "table",
       type: "list",
       message: "Please select a table:",
-      choices: ["Employees", "Departments", "Roles"]
+      choices: options
     }).then(async function (menuAnswer) {
       table = menuAnswer.table.toLowerCase();
       table = table.substring(0, table.length - 1);
