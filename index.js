@@ -27,7 +27,7 @@ async function getAction() {
   const promise3 = db.executeQuery("SELECT * FROM department");
 
   await Promise.all([promise1, promise2, promise3]).then(function (values) {
-    if (values[0].length || values[1].length || values[2].length) {
+    if ((values[0].length > 0) || (values[1].length > 0) || (values[2].length > 0)) {
       options.push("Update", "Delete");
     }
   });
@@ -37,7 +37,7 @@ async function getAction() {
       name: "action",
       type: "list",
       message: "Please select an action:",
-      choices: ["View", "Add", "Update", "Delete", "EXIT"]
+      choices: options
     }).then(async function (menuAnswer) {
       action = menuAnswer.action;
       exit = action == "EXIT";
@@ -358,9 +358,9 @@ async function getTable() {
       const promise2 = db.executeQuery("SELECT * FROM role");
       const promise3 = db.executeQuery("SELECT * FROM department");
       await Promise.all([promise1, promise2, promise3]).then(function (values) {
-        if (values[0].length) { options.push("Employees"); }
-        if (values[2].length) { options.push("Departments"); }
-        if (values[1].length) { options.push("Roles"); }
+        if (values[0].length > 0) { options.push("Employees"); }
+        if (values[2].length > 0) { options.push("Departments"); }
+        if (values[1].length > 0) { options.push("Roles"); }
       });
 
   }
