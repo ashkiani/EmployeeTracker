@@ -6,7 +6,9 @@ let exit = false;
 let action = "";
 let table = "";
 let employeeRole = "";
+let employeeManagerID = 0;
 const noRoleTitle = "No Role";
+const noManager = "No Manager";
 
 //Siavash 2/8/2020 Added the following code to suppress the MaxListenersExceeded warning. 
 //I assume that the warning eventually reappears if the number of team members grows but I tested it with up to 8 employees and worked fine.
@@ -69,6 +71,21 @@ async function getEmployeeRole(roles) {
       employeeRole = roleInfo.role;
     })
 }
+
+async function getEmployeeManager(managers) {
+  let mngrs = managers.map(manager => { return JSON.stringify(manager); });
+  mngrs.push(JSON.stringify({ id: 0, name: noManager }));
+  return inquirer
+    .prompt({
+      name: "manager",
+      type: "list",
+      message: "Please select the manager:",
+      choices: mngrs
+    }).then(async function (managerInfo) {
+      employeeManagerID = JSON.parse(managerInfo.manager).id;
+    })
+}
+
 async function addNewRole() {
   return inquirer
     .prompt({
@@ -76,7 +93,6 @@ async function addNewRole() {
       type: "input",
       message: "Please enter role title:"
     }).then(async function (roleInfo) {
-      console.log(roleInfo);
       let existingRole = await db.executeQuery("SELECT * FROM role WHERE title='" + roleInfo.title + "'");
       if (existingRole.length == 0) {
         await db.executeQuery("INSERT INTO role SET title='" + roleInfo.title + "'");
@@ -90,7 +106,6 @@ async function addNewDepartment() {
       type: "input",
       message: "Please enter department name:"
     }).then(async function (deptInfo) {
-      console.log(deptInfo);
       let existingDept = await db.executeQuery("SELECT * FROM department WHERE name='" + deptInfo.name + "'");
       if (existingDept.length == 0) {
         await db.executeQuery("INSERT INTO department SET name='" + deptInfo.name + "'");
@@ -99,8 +114,8 @@ async function addNewDepartment() {
 }
 
 async function updateEmployee() {
-  let sql = `SELECT employee.id, employee.first_name,employee.last_name,title,emp1.first_name +emp1.last_name AS manager
-              FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.employee AS emp1 ON employee.manager_id=emp1.manager_id;`
+  let sql = `SELECT employee.id, employee.first_name,employee.last_name,title,concat( emp1.first_name , ' ', emp1.last_name) AS manager
+              FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.employee AS emp1 ON employee.manager_id=emp1.id;`
   let employees = await db.executeQuery(sql);
   employees = employees.map(employee => { return JSON.stringify(employee) });
   return inquirer
@@ -110,7 +125,6 @@ async function updateEmployee() {
       message: "Please select the  employee the employee that you want to update:",
       choices: employees
     }).then(async function (employeeInfo) {
-      console.log(employeeInfo);
       let index = employees.indexOf(employeeInfo.id);
       let employeeId = JSON.parse(employees[index]).id;
       await employeeUpdatePrompt(employeeId);
@@ -137,9 +151,20 @@ async function employeeUpdatePrompt(employeeId) {
             let sql = `UPDATE employee SET role_id= ${roleId} WHERE id=${employeeId}`;
             await db.executeQuery(sql);
           }
-        // let options = await db.executeQuery(`SELECT title FROM role ORDER BY title`);
-        //   await employeeUpdateValuesPrompt(options);
+          else { console.log("No Role is available. Please create a new Role first."); }
+          break;
         case "Manager":
+          let possibleManagers = await db.executeQuery(`SELECT * FROM employee WHERE id<>${employeeId}`);
+          if (possibleManagers.length > 0) {
+            await getEmployeeManager(possibleManagers);
+            let managerId = 'NULL';
+            if (employeeManagerID != 0) {
+              managerId = employeeManagerID;
+            }
+            let sql = `UPDATE employee SET manager_id= ${managerId} WHERE id=${employeeId}`;
+            await db.executeQuery(sql);
+          } else { console.log("No Manager is available. Please add a new manager first."); }
+          break;
       }
 
     })
