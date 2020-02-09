@@ -11,6 +11,8 @@ const noRoleTitle = "No Role";
 const noManager = "No Manager";
 const employeeSelectSql = `SELECT employee.id, employee.first_name,employee.last_name,title,concat( emp1.first_name , ' ', emp1.last_name) AS manager
               FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.employee AS emp1 ON employee.manager_id=emp1.id  ORDER BY employee.first_name,employee.last_name,title;`
+let newTitle;
+let newSalary;
 
 //Siavash 2/8/2020 Added the following code to suppress the MaxListenersExceeded warning. 
 //I assume that the warning eventually reappears if the number of team members grows but I tested it with up to 8 employees and worked fine.
@@ -74,6 +76,28 @@ async function getEmployeeRole(roles) {
     })
 }
 
+async function getUpdateRoleTitle() {
+  return inquirer
+    .prompt({
+      name: "role",
+      type: "input",
+      message: "Please enter the new title for this role:",
+    }).then(async function (roleInfo) {
+      newTitle = roleInfo.role;
+    })
+}
+
+async function getUpdateRoleSalary() {
+  return inquirer
+    .prompt({
+      name: "role",
+      type: "input",
+      message: "Please enter the new salary for this role:",
+    }).then(async function (roleInfo) {
+      newSalary = roleInfo.role;
+    })
+}
+
 async function getEmployeeManager(managers) {
   let mngrs = managers.map(manager => { return JSON.stringify(manager); });
   mngrs.push(JSON.stringify({ id: 0, name: noManager }));
@@ -115,14 +139,32 @@ async function addNewDepartment() {
     })
 }
 
+
+async function updateRole() {
+  let roles = await db.executeQuery("SELECT * FROM role");
+  roles = roles.map(role => { return JSON.stringify(role) });
+  return inquirer
+    .prompt({
+      name: "id",
+      type: "list",
+      message: "Please select the  role that you want to update:",
+      choices: roles
+    }).then(async function (roleInfo) {
+      let index = roles.indexOf(roleInfo.id);
+      let roleId = JSON.parse(roles[index]).id;
+      await roleUpdatePrompt(roleId);
+    })
+}
+
+
 async function updateEmployee() {
-    let employees = await db.executeQuery(employeeSelectSql);
+  let employees = await db.executeQuery(employeeSelectSql);
   employees = employees.map(employee => { return JSON.stringify(employee) });
   return inquirer
     .prompt({
       name: "id",
       type: "list",
-      message: "Please select the  employee the employee that you want to update:",
+      message: "Please select the employee that you want to update:",
       choices: employees
     }).then(async function (employeeInfo) {
       let index = employees.indexOf(employeeInfo.id);
@@ -130,6 +172,31 @@ async function updateEmployee() {
       await employeeUpdatePrompt(employeeId);
     })
 }
+
+async function roleUpdatePrompt(roleId) {
+  return inquirer
+    .prompt({
+      name: "updateAction",
+      type: "list",
+      message: "Please select the field to update:",
+      choices: ["Title", "Salary"]
+    }).then(async function (updateAction) {
+      let sql;
+      switch (updateAction.updateAction) {
+        case "Title":
+          await getUpdateRoleTitle();
+          sql = `UPDATE role SET title= '${newTitle}' WHERE id=${roleId}`;
+          await db.executeQuery(sql);
+          break;
+        case "Salary":
+          await getUpdateRoleSalary();
+          sql = `UPDATE role SET salary= ${newSalary} WHERE id=${roleId}`;
+          await db.executeQuery(sql);
+          break;
+      }
+    })
+}
+
 async function employeeUpdatePrompt(employeeId) {
   return inquirer
     .prompt({
@@ -208,8 +275,15 @@ async function getValues() {
           return addNewDepartment();
       }
     case "Update":
-      return updateEmployee();
+      switch (table) {
+        case "employee":
+          return updateEmployee();
+        case "role":
+          return updateRole();
+        case "department":
 
+      }
+      break;
     case "Delete":
 
       break;
