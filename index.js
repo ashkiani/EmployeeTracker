@@ -6,8 +6,10 @@ let exit = false;
 let action = "";
 let table = "";
 let employeeRole = "";
+let roleDeptID = 0;
 let employeeManagerID = 0;
 const noRoleTitle = "No Role";
+const noRoleDept = "No Department";
 const noManager = "No Manager";
 const employeeSelectSql = `SELECT employee.id, employee.first_name,employee.last_name,title,concat( emp1.first_name , ' ', emp1.last_name) AS manager
               FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.employee AS emp1 ON employee.manager_id=emp1.id  ORDER BY employee.first_name,employee.last_name,title;`
@@ -121,6 +123,21 @@ async function getEmployeeRole(roles) {
     })
 }
 
+async function getRoleDept(depts) {
+  depts = depts.map(dept => { return JSON.stringify(dept); });
+  depts.push(JSON.stringify({ id: 0, name: noRoleDept }));
+  return inquirer
+    .prompt({
+      name: "dept",
+      type: "list",
+      message: "Please select the department:",
+      choices: depts
+    }).then(async function (deptInfo) {
+      roleDeptID = JSON.parse(deptInfo.dept).id;
+    })
+}
+
+
 async function getUpdateRoleTitle() {
   return inquirer
     .prompt({
@@ -159,14 +176,26 @@ async function getEmployeeManager(managers) {
 
 async function addNewRole() {
   return inquirer
-    .prompt({
+    .prompt([{
       name: "title",
       type: "input",
       message: "Please enter role title:"
-    }).then(async function (roleInfo) {
+    }, {
+      name: "salary",
+      type: "input",
+      message: "Please enter role salary:"
+    }]).then(async function (roleInfo) {
       let existingRole = await db.executeQuery("SELECT * FROM role WHERE title='" + roleInfo.title + "'");
       if (existingRole.length == 0) {
-        await db.executeQuery("INSERT INTO role SET title='" + roleInfo.title + "'");
+        let depts = await db.executeQuery("SELECT * FROM department");
+        let querySQL = `INSERT INTO role SET title= '${roleInfo.title}',salary=${roleInfo.salary}`;
+        if (depts.length > 0) {
+          await getRoleDept(depts);
+          if (roleDeptID != 0) {
+            querySQL += `, department_id=${roleDeptID}`
+          }
+        }
+        await db.executeQuery(querySQL);
       }
     })
 }
