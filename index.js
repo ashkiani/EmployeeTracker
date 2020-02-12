@@ -39,7 +39,7 @@ async function getIDForDelete(sqlQuery) {
 }
 
 async function getAction() {
-  let options = ["View", "Add"];
+  let options = ["Add"];
 
   const promise1 = db.executeQuery("SELECT * FROM employee");
   const promise2 = db.executeQuery("SELECT * FROM role");
@@ -47,7 +47,7 @@ async function getAction() {
 
   await Promise.all([promise1, promise2, promise3]).then(function (values) {
     if ((values[0].length > 0) || (values[1].length > 0) || (values[2].length > 0)) {
-      options.push("Update", "Delete");
+      options.push("View", "Update", "Delete");
     }
   });
   options.push("EXIT");
@@ -92,20 +92,13 @@ async function addNewEmployee() {
 
       let possibleManagers = await db.executeQuery(`SELECT * FROM employee`);
       if (possibleManagers.length > 0) {
-        await getEmployeeManager(possibleManagers);
+        await getEmployeeManager(possibleManagers, true);
         if (employeeManagerID != 0) {
           managerId = employeeManagerID;
           sql += `, manager_id=${employeeManagerID}`
         }
 
       }
-      // else { console.log("No Manager is available. Please add a new manager first."); }
-      // break;
-
-
-
-
-      // console.log(sql);
       await db.executeQuery(sql);
     })
 }
@@ -160,9 +153,11 @@ async function getUpdateRoleSalary() {
     })
 }
 
-async function getEmployeeManager(managers) {
+async function getEmployeeManager(managers, showNoManagerOption) {
   let mngrs = managers.map(manager => { return JSON.stringify(manager); });
-  mngrs.push(JSON.stringify({ id: 0, name: noManager }));
+  if (showNoManagerOption) {
+    mngrs.push(JSON.stringify({ id: 0, name: noManager }));
+  }
   return inquirer
     .prompt({
       name: "manager",
@@ -323,7 +318,7 @@ async function employeeUpdatePrompt(employeeId) {
         case "Manager":
           let possibleManagers = await db.executeQuery(`SELECT * FROM employee WHERE id<>${employeeId}`);
           if (possibleManagers.length > 0) {
-            await getEmployeeManager(possibleManagers);
+            await getEmployeeManager(possibleManagers, true);
             let managerId = 'NULL';
             if (employeeManagerID != 0) {
               managerId = employeeManagerID;
@@ -349,8 +344,14 @@ async function PrintTable() {
       break;
     case "department":
       break;
-
-
+    case "Employees By Manager":
+      let Managers = await db.executeQuery(`SELECT employee.manager_id as id, emp1.first_name, emp1.last_name FROM employee INNER JOIN employee as emp1 ON employee.manager_id=emp1.id WHERE employee.manager_id IS NOT NULL`);
+      if (Managers.length > 0) {
+        await getEmployeeManager(Managers, false);
+        sql = `SELECT employee.first_name, employee.last_name, CONCAT(emp1.first_name, ' ',emp1.last_name) AS manager FROM employee INNER JOIN employee as emp1 ON 
+        employee.manager_id=emp1.id WHERE emp1.id=${employeeManagerID}`
+      }
+      break;
   }
   let res = await db.executeQuery(sql);
   if (res.length > 0) {
@@ -407,18 +408,24 @@ async function getValues() {
 
 async function getTable() {
   let options = [];
+  let msgSelectType = "table";
   switch (action) {
-    case "View":
     case "Add":
       options = ["Employees", "Departments", "Roles"];
       break;
+    case "View":
     case "Update":
     case "Delete":
       const promise1 = db.executeQuery("SELECT * FROM employee");
       const promise2 = db.executeQuery("SELECT * FROM role");
       const promise3 = db.executeQuery("SELECT * FROM department");
-      await Promise.all([promise1, promise2, promise3]).then(function (values) {
+      const promise4 = db.executeQuery("SELECT * FROM employee WHERE manager_id IS NOT NULL");
+      await Promise.all([promise1, promise2, promise3, promise4]).then(function (values) {
         if (values[0].length > 0) { options.push("Employees"); }
+        if (action == "View" && values[3].length > 0) {
+          options.push("Employees By Manager");
+          msgSelectType += "/View";
+        }
         if (values[2].length > 0) { options.push("Departments"); }
         if (values[1].length > 0) { options.push("Roles"); }
       });
@@ -430,11 +437,16 @@ async function getTable() {
     .prompt({
       name: "table",
       type: "list",
-      message: "Please select a table:",
+      message: `Please select a ${msgSelectType}:`,
       choices: options
     }).then(async function (menuAnswer) {
-      table = menuAnswer.table.toLowerCase();
-      table = table.substring(0, table.length - 1);
+      if (menuAnswer.table == "Employees By Manager") {
+        table = menuAnswer.table
+      } else {
+        table = menuAnswer.table.toLowerCase();
+        table = table.substring(0, table.length - 1);
+      }
+
       await getValues();
     })
 }
