@@ -15,6 +15,8 @@ const employeeSelectSql = `SELECT employee.id, employee.first_name,employee.last
               FROM employees_db.employee LEFT JOIN employees_db.role ON role_id=employees_db.role.id LEFT JOIN employees_db.employee AS emp1 ON employee.manager_id=emp1.id  ORDER BY employee.first_name,employee.last_name,title;`
 let newTitle;
 let newSalary;
+let employeeByManagerView = "Employees By Manager";
+let tUBDView = "Total Utilized Budget By Department";
 
 //Siavash 2/8/2020 Added the following code to suppress the MaxListenersExceeded warning. 
 //I assume that the warning eventually reappears if the number of team members grows but I tested it with up to 8 employees and worked fine.
@@ -116,9 +118,11 @@ async function getEmployeeRole(roles) {
     })
 }
 
-async function getRoleDept(depts) {
+async function getRoleDept(depts, showNoDept) {
   depts = depts.map(dept => { return JSON.stringify(dept); });
-  depts.push(JSON.stringify({ id: 0, name: noRoleDept }));
+  if (showNoDept) {
+    depts.push(JSON.stringify({ id: 0, name: noRoleDept }));
+  }
   return inquirer
     .prompt({
       name: "dept",
@@ -185,7 +189,7 @@ async function addNewRole() {
         let depts = await db.executeQuery("SELECT * FROM department");
         let querySQL = `INSERT INTO role SET title= '${roleInfo.title}',salary=${roleInfo.salary}`;
         if (depts.length > 0) {
-          await getRoleDept(depts);
+          await getRoleDept(depts, true);
           if (roleDeptID != 0) {
             querySQL += `, department_id=${roleDeptID}`
           }
@@ -344,7 +348,7 @@ async function PrintTable() {
       break;
     case "department":
       break;
-    case "Employees By Manager":
+    case employeeByManagerView:
       let Managers = await db.executeQuery(`SELECT employee.manager_id as id, emp1.first_name, emp1.last_name FROM employee INNER JOIN employee as emp1 ON employee.manager_id=emp1.id WHERE employee.manager_id IS NOT NULL`);
       if (Managers.length > 0) {
         await getEmployeeManager(Managers, false);
@@ -352,6 +356,12 @@ async function PrintTable() {
         employee.manager_id=emp1.id WHERE emp1.id=${employeeManagerID}`
       }
       break;
+    case tUBDView:
+      let depts = await db.executeQuery("SELECT * FROM department");
+      await getRoleDept(depts, false);
+      sql = `SELECT SUM(salary) AS 'Combined salaries of all employees in the department' FROM 
+      employees_db.department LEFT JOIN role ON department_id=department.id LEFT JOIN employee ON 
+      employee.role_id=role.id WHERE department.id=${roleDeptID}`
   }
   let res = await db.executeQuery(sql);
   if (res.length > 0) {
@@ -422,16 +432,24 @@ async function getTable() {
       const promise4 = db.executeQuery("SELECT * FROM employee WHERE manager_id IS NOT NULL");
       await Promise.all([promise1, promise2, promise3, promise4]).then(function (values) {
         if (values[0].length > 0) { options.push("Employees"); }
-        if (action == "View" && values[3].length > 0) {
-          options.push("Employees By Manager");
-          msgSelectType += "/View";
+        if (action == "View") {
+          if (values[3].length > 0) {
+            options.push(employeeByManagerView);
+            msgSelectType += "/View";
+          }
         }
         if (values[2].length > 0) { options.push("Departments"); }
+        if (action == "View") {
+          if (values[2].length > 0) {
+            options.push(tUBDView);
+            if (msgSelectType == "table") {
+              msgSelectType += "/View";
+            }
+          }
+        }
         if (values[1].length > 0) { options.push("Roles"); }
       });
-
   }
-
 
   return inquirer
     .prompt({
@@ -440,7 +458,7 @@ async function getTable() {
       message: `Please select a ${msgSelectType}:`,
       choices: options
     }).then(async function (menuAnswer) {
-      if (menuAnswer.table == "Employees By Manager") {
+      if (menuAnswer.table == employeeByManagerView || menuAnswer.table == tUBDView) {
         table = menuAnswer.table
       } else {
         table = menuAnswer.table.toLowerCase();
