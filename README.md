@@ -13,7 +13,8 @@ A solution for managing a company's employees using node, inquirer, and MySQL.
 * Users can add departments, roles, employees.
 * Users can view departments, roles, employees.
 * Users can update employee roles. 
-* Users can update employee managers. 
+* Users can update employee managers.
+* Users can update roles data (title, salary and department).
 * Users can delete departments, roles, and employees.
 * Users can view employees by manager. 
 * Users can view the total utilized budget of a department -- ie the combined salaries of all employees in that department

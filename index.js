@@ -267,7 +267,7 @@ async function roleUpdatePrompt(roleId) {
       name: "updateAction",
       type: "list",
       message: "Please select the field to update:",
-      choices: ["Title", "Salary"]
+      choices: ["Title", "Salary", "Department"]
     }).then(async function (updateAction) {
       let sql;
       switch (updateAction.updateAction) {
@@ -279,6 +279,16 @@ async function roleUpdatePrompt(roleId) {
         case "Salary":
           await getUpdateRoleSalary();
           sql = `UPDATE role SET salary= ${newSalary} WHERE id=${roleId}`;
+          await db.executeQuery(sql);
+          break;
+        case "Department":
+          let depts = await db.executeQuery("SELECT * FROM department");
+          await getRoleDept(depts, true);
+          let deptId = 'NULL';
+          if (roleDeptID != 0) {
+            deptId = roleDeptID;
+          }
+          sql = `UPDATE role SET department_id= ${deptId} WHERE id=${roleId}`;
           await db.executeQuery(sql);
           break;
       }
