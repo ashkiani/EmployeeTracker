@@ -355,6 +355,7 @@ async function PrintTable() {
       sql = employeeSelectSql;
       break;
     case "role":
+      sql ="SELECT title, salary, name AS department FROM role LEFT JOIN department ON department_id=department.id;"
       break;
     case "department":
       break;
