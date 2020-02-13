@@ -52,9 +52,3 @@ UPDATE CASCADE
   )
     
 COMMENT = 'This table stores the employees information';
-
-
-
-
-
-  

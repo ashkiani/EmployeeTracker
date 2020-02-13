@@ -24,7 +24,9 @@ A solution for managing a company's employees using node, inquirer, and MySQL.
 ​
 * Clone this repository.
 * run command: npm install
-* enter your username and password for connecting to your MySQL database
+* enter your MySQL username and password in database.js
+* use the db/schema.sql content to create the database
+* [optional] populate the database by executing content of db/seed.sql
 * run command: node server.js
 ​
 ​
