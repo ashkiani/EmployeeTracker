@@ -360,7 +360,7 @@ async function PrintTable() {
     case "department":
       break;
     case employeeByManagerView:
-      let Managers = await db.executeQuery(`SELECT employee.manager_id as id, emp1.first_name, emp1.last_name FROM employee INNER JOIN employee as emp1 ON employee.manager_id=emp1.id WHERE employee.manager_id IS NOT NULL`);
+      let Managers = await db.executeQuery(`SELECT DISTINCT employee.manager_id as id, emp1.first_name, emp1.last_name FROM employee INNER JOIN employee as emp1 ON employee.manager_id=emp1.id WHERE employee.manager_id IS NOT NULL`);
       if (Managers.length > 0) {
         await getEmployeeManager(Managers, false);
         sql = `SELECT employee.first_name, employee.last_name, CONCAT(emp1.first_name, ' ',emp1.last_name) AS manager FROM employee INNER JOIN employee as emp1 ON 
